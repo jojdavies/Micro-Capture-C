@@ -60,3 +60,20 @@ To run the first part of the pipe change the following in the MCC_pipe_config.tx
 
 but leave 
 >Pipe2=N
+
+The MCC_pipe_config.txt has a small bash script at the top, which allows you to run the pipeline by typing 
+
+>bash MCC_pipe_config.txt
+
+If this has run correctly it should create a folder which has a fastq file in it for each of your targets. 
+You can then run the second part of the pipe by changing the initial parts from "Y" to "N" in the MCC_pipe_config.txt and changing the following:
+
+>Pipe2=Y
+>bowtie=Y
+>sort=Y
+>MCCanal=Y
+>track_hub=Y
+
+The options gzip, postgzip, clean_wig and samtobam allow you to compress and clean up the files quickly
+
+The macs2 option will call MACS2 for simple peak calling
