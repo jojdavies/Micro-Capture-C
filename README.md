@@ -1,12 +1,15 @@
 # Micro-Capture-C
 
-This is the code used to make a pipeline for analysing Micro Capture-C (MCC) data
-There are three main scripts for analysing the data, which can be used independently to generate output files
+This is the code used to make a pipeline for analysing Micro Capture-C (MCC) data.
+
+There are three main scripts for analysing the data, which can be used independently to generate output files and the whole process can be run manually.
+
 1. MCC_BLATfa.pl
 2. MCC_fastq_splitter.pl
 3. MCC_analyser.pl
 
 These scripts are subject to academic only use and can be downloaded from the Oxford University Software Store https://process.innovation.ox.ac.uk/software/p/16529a/micro-capture-c-academic/1
+
 
 Prior to running the analysis a reference file of the sequence surrounding the oligo positions needs to be generated using the MCC_BLATfa.pl script 
 
