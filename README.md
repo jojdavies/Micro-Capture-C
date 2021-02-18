@@ -91,3 +91,9 @@ You can then run the second part of the pipe by changing the initial parts from 
 The options gzip, postgzip, clean_wig and samtobam allow you to compress and clean up the files quickly
 
 The macs2 option will call MACS2 for simple peak calling
+
+The MCC_pipe2.pl script creates temporary scripts called align_tmp.sh in each of the folders created by the first part of the pipeline.
+The align_tmp.sh is overwritten for each of the targets so you will only see the commands for the last target. 
+Be careful running this command - it is worthwhile testing this part of the pipeline on one set of files first (easy to do by hashing out the file= in the MCC_pipe_config.txt) otherwise it will potentially try to execute hundreds of jobs simultaneously (e.g. 6 replicates with 100 targets = 600 jobs). 
+
+
