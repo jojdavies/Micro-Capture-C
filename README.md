@@ -69,9 +69,13 @@ If this has run correctly it should create a folder which has a fastq file in it
 You can then run the second part of the pipe by changing the initial parts from "Y" to "N" in the MCC_pipe_config.txt and changing the following:
 
 >Pipe2=Y
+
 >bowtie=Y
+
 >sort=Y
+
 >MCCanal=Y
+
 >track_hub=Y
 
 The options gzip, postgzip, clean_wig and samtobam allow you to compress and clean up the files quickly
