@@ -49,8 +49,11 @@ Initially I would recommend running the first part of the pipe and then running 
 To run the first part of the pipe change the following in the MCC_pipe_config.txt file
 
 >trim_galore=Y
+
 >flash=Y
+
 >fq2fa=Y
+
 >blat=Y
 
 >MCC_splitter=Y
