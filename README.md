@@ -9,7 +9,7 @@ There are three main scripts for analysing the data, which can be used independe
 3. MCC_analyser.pl
 
 These scripts are subject to academic only use and can be downloaded from the Oxford University Software Store https://process.innovation.ox.ac.uk/software/p/16529a/micro-capture-c-academic/1
-
+Please download these scripts and the MCC_pipe scripts all into the same folder in order for it to run properly.
 
 Prior to running the analysis a reference file of the sequence surrounding the oligo positions needs to be generated using the MCC_oligo_fa.pl script 
 It also creates a bed file of the oligos and you can alter this to specify the colours of the tracks in the track hub at the end if you like.
