@@ -39,7 +39,7 @@ The pipeline will also make you a trackhub to view the data.
 
 To run the pipeline initially run the first script MCC_pipe1.pl to make a config file called MCC_pipe_config.txt in the directory which contains the fastq files you want to analyse
 
-> perl /path_to_scripts_folder/MCC_pipe1.pl -config
+>perl /path_to_scripts_folder/MCC_pipe1.pl -config
  
 This will generated a file called MCC_pipe_config.txt, which you need to edit to specify the, paths to the genome files for bowtie; the names of the fastq files and the project name and the paths to the oligo files. 
 
@@ -62,10 +62,10 @@ but leave
 >Pipe2=N
 
 To run the pipeline type 
->perl /path_to/MCC_pipe1.pl
+>perl /path_to_scripts_folder/MCC_pipe1.pl -i MCC_pipe_config.txt
 
 This will generate a tmp.sh file with the commands to execute. 
-It is worthwhile checking that this seems sensible before executing this!
+It is worthwhile checking that this seems sensible before executing this.
 
 If you run the script with the -q flag it will execute the tmp.sh script on slurm (you may need to alter the exact command in the MCC_pipe1.pl and MCC_pipe2.pl scripts to adapt it to your local server). 
 
