@@ -61,6 +61,13 @@ To run the first part of the pipe change the following in the MCC_pipe_config.tx
 but leave 
 >Pipe2=N
 
+To run the pipeline type 
+>perl /path_to/MCC_pipe1.pl
+
+This will generate a tmp.sh file with the commands to execute.
+If you run the script with the -q flag it will execute the tmp.sh script on slurm (you may need to alter the exact command in the MCC_pipe1.pl and MCC_pipe2.pl scripts to adapt it to your local server. 
+Note that if you have multiple experiments the tmp.sh file is overwritten each time and so you will only see the command run for the final files.
+
 The MCC_pipe_config.txt has a small bash script at the top, which allows you to run the pipeline by typing 
 
 >bash MCC_pipe_config.txt
