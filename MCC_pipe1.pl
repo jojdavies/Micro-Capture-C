@@ -105,7 +105,7 @@ pod2usage(1) if $help;
 pod2usage(-verbose=>2) if $man;
 pod2usage(2) unless ($input_file);
 
-if ($config ==1){config_file()} #outputs the standard config file if requested and exits
+if ($config ==1){MCC::config_file()} #outputs the standard config file if requested and exits
 
 # This loads the config file and puts it into the hash
 # Loads the MCC config file into the %param hash and @files array
