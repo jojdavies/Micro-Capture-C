@@ -2,9 +2,12 @@
 
 use strict;
 use Cwd;
-use Data::Dumper;
+#use Data::Dumper;
 use Getopt::Long;
 use Pod::Usage;
+use File::Basename;
+use lib dirname (__FILE__);
+use MCC;
 
 =head1 NAME
  
@@ -37,36 +40,8 @@ my $sleep_time =10;
 
 # Default parameters stored in %para hash
 my %param;
-$param{"master_folder"} = "";
-$param{"public_folder"} = "";
-$param{"public_url"} = "";
-$param{"bigwig_folder"} = "";
-$param{"bowtie_genome_path"}="";
-$param{"email"} = '';
-$param{"reference"}="MCC";
-$param{'oligo_file'}="";
-$param{'colour_file'}="";
-$param{"trim_galore"}="N";
-$param{"flash"}="N";
-$param{"gunzip"}="N";
-$param{"gzip"}="N";
-$param{"fa2fq"}="N";
-$param{"blat"}="N";
-$param{"MNase_multi"}="N";
-$param{"genome"}="mm9";
-$param{"qsub"}=0;
-$param{"bowtie"}=0;
-$param{"samtools"}=0; #not normally necessary to run unless trouble shooting 
-$param{"samtobam"}=0; #not normally necessary but can be useful
-$param{"bamtosam"}=0;
-$param{"sort"}=0;
-$param{"MCCanal"}=0;
-$param{"postgzip"}=0;
-$param{"track_hub"}=0;
-$param{"double_norm"}=0;
-$param{"name"}=$param{"reference"}; #Required to make a unque name for the track hub
-$param{"macs2"}=0;
-$param{"normalisation_dhs_bed"}='';
+my $input_file="MCC_pipe_config.txt";
+MCC::default_parameters(\%param); #inserts the default parameters into the %param hash
 
 # Strings
 # NB. The following strings should be changed to to your public account, server url and bigwig folder.
@@ -84,19 +59,19 @@ my @files;
 # The GetOptions from the command line
 &GetOptions
 (
-  "i=s"=>\ $param{"input_file"},
-  "p=s"=>\ $path,
+    "i=s"=>\ $param{"input_file"},
+    "p=s"=>\ $path,
 	"q"=>\ $param{"qsub"},			# -pf		Your public folder (e.g. /hts/data0/public/username)
 	"pf=s"=>\ $param{"public_folder"},			# -pf		Your public folder (e.g. /hts/data0/public/username)
 	"pu=s"=>\ $param{"public_url"},				# -pu		Your public url (e.g. sara.molbiol.ox.ac.uk/public/username)
-  "genome=s"=>\ $param{"genome"},             # -genome   Genome
-  "n=s"=>\ $param{"name"},             # -genome   Genome
-  "b"=>\ $param{"bowtie"},                    # -b        Run bowtie
-  "sam"=>\ $param{"samtools"},                # -sam      Run samtools
-  "m"=>\ $param{"MCCanal"},
-  "s"=>\ $param{"sort"},
-  "gzip"=>\ $param{"postgzip"},
-  "hub"=>\ $param{"track_hub"},
+    "genome=s"=>\ $param{"genome"},             # -genome   Genome
+    "n=s"=>\ $param{"name"},             # -genome   Genome
+    "b"=>\ $param{"bowtie"},                    # -b        Run bowtie
+    "sam"=>\ $param{"samtools"},                # -sam      Run samtools
+    "m"=>\ $param{"MCCanal"},
+    "s"=>\ $param{"sort"},
+    "gzip"=>\ $param{"postgzip"},
+    "hub"=>\ $param{"track_hub"},
 	'h|help'=>\$help,				# -h or -help 	Help - prints the manual
 	'man'=>\$man,					# -man  	prints the manual
 );
@@ -104,26 +79,9 @@ my @files;
 pod2usage(1) if $help;
 pod2usage(-verbose=>2) if $man;
 
-# Allows the parameters to be specified in the input file
-if (exists $param{"input_file"})
-{
-open FH, $param{"input_file"} or die "Couldn't open input file $param{'input_file'}";
 
 # Pulls in the MCC_pipe_config file and puts the data into a hash / array of the files
-while (my $line = <FH>)
-    {
-    chomp $line;
-    if ($line =~ /^#/){} 
-    elsif ($line =~ /^\s*$/){}
-    elsif (($line =~ /^perl/) or ($line =~ /^exit/)){}
-    elsif (($line =~ /(.*)\s*=\s*(.*)/) or ($line =~ /(.*)\s*=\s*(.*)\s*#.*/))
-        {
-            if ($1 eq "file"){push @files, $2}
-            else{$param{$1}=$2}
-        }
-    else {print "line of input file not read: $line\n"}
-    }
-}
+load_config_file("$input_file", \%param, \@files);
 
 # Makes a subdirectory in the public folder
 $param{"public_folder_expt"} = $param{"public_folder"}."/".$param{"reference"};
@@ -139,7 +97,7 @@ chdir $path;
 my $target = '';
 if (exists ($param{"single_target"})){$target = $param{"single_target"}}
 
-print_parameters(\%param);
+MCC::print_parameters(\%param);
 
 # Loops through all the files in the directory and prints the commands into a temporary file
 foreach my $file (@files)
@@ -154,58 +112,64 @@ print TMP "#!/bin/bash
 # Script started at $hour:$min:$sec $mday/$mon/$year
 # Filename $filename\n";
 
-output_parameters(\%param, \*TMP);
+MCC::output_parameters(\%param, \*TMP);
+
+# To compress the files afterwards
+if ($param{"postgunzip"} =~ /^[Yy1]/)
+{
+    if (-e "$filename.fastq.gz"){print TMP "gunzip $filename.fastq.gz\n"}
+}
+
 
 # Runs bowtie2
 if ($param{"bowtie"} =~ /^[Yy1]/)
 {
 print TMP "
 module load bowtie2
-bowtie2 -p 4 -X 1000 -x $param{'bowtie_genome_path'} $filename.fastq -S $filename.sam"
+test -e $filename.fastq && bowtie2 -p 1 -X 1000 -x $param{'bowtie_genome_path'} $filename.fastq -S $filename.sam || exit 0\n";
+print TMP 'if wait; then echo "Bowtie on'.$filename.'fastq completed successfully">>log.txt;fi'."\n";
 }
 
 # Converts to bam back to sam if it has previously been compressed
 if ($param{"bamtosam"} =~ /^[Yy1]/) #Reason for elsif is that you don't want to run both of these options - the first trumps the second.
 {
-print TMP "
-samtools view -h $filename.bam > $filename.sam
-"
+print TMP "samtools view -h $filename.bam > $filename.sam\n";
+print TMP 'if wait; then echo "BAM to SAM on'.$filename.' completed successfully">>log.txt;fi'."\n";
 }
 
 # Convert from sam to bam visualising and trouble shooting
 if ($param{"samtools"} =~ /^[Yy1]/)
 {
-print TMP "
-samtools view -S -b -o $filename.bam $filename.sam
+print TMP "samtools view -S -b -o $filename.bam $filename.sam
 samtools sort $filename.bam  -o $filename.sorted.bam
-samtools index $filename.sorted.bam
-cp $filename.sorted.bam $param{'public_folder_expt'}
+samtools index $filename.sorted.bam";
+print TMP 'if wait; then echo "SAM to BAM on'.$filename.' completed">>log.txt;fi'."\n";
+print TMP "cp $filename.sorted.bam $param{'public_folder_expt'}
 cp $filename.sorted.bam.bai $param{'public_folder_expt'}
-echo track type=bam name=\"$filename\" bigDataUrl=$param{'public_url'}$param{'public_folder_expt'}/$filename.sorted.bam >> UCSC.txt"
+echo track type=bam name=\"$filename\" bigDataUrl=$param{'public_url'}$param{'public_folder_expt'}/$filename.sorted.bam >> UCSC.txt\n";
+print TMP 'if wait; then echo "BAMs on'.$filename.' copied and sorted completed successfully">>log.txt;fi'."\n";
 }
 elsif ($param{"samtobam"} =~ /^[Yy1]/) #Reason for elsif is that you don't want to run both of these options - the first trumps the second.
 {
-print TMP "
-samtools view -S -b -o $filename.bam $filename.sam
-samtools sort $filename.bam  -o $filename.sorted.bam
-"
+print TMP "samtools view -S -b -o $filename.bam $filename.sam
+samtools sort $filename.bam  -o $filename.sorted.bam\n";
+print TMP 'if wait; then echo "SAM to BAM on'.$filename.' completed successfully">>log.txt;fi'."\n";
 }
 
 # Sorts the sam file - this is important for the next step in the analysis
 if ($param{"sort"} =~ /^[Yy1]/)
 {
-print TMP "
-samtools sort -n -o $filename\_sort.sam $filename.sam
-rm $filename.sam
-mv $filename\_sort.sam $filename.sam"
+print TMP "module load samtools
+test -e $filename.sam && samtools sort -n -o $filename\_sort.sam $filename.sam || exit 0
+mv $filename\_sort.sam $filename.sam\n";
+print TMP 'if wait; then echo "Sort on'.$filename.' completed successfully">>log.txt;fi'."\n";
 }
 
 # Runs the MCC_analyser.pl script which is the main script which pulls out the junctions
 if ($param{"MCCanal"} =~ /^[Yy1]/)
 {
-print TMP "
-perl $param{'master_folder'}/MCC_analyser.pl -f $filename.sam -pf $param{'public_folder_expt'} -bf $param{'bigwig_folder'} -genome $param{'genome'} -o $param{'oligo_file'}
-"
+print TMP "test -e $filename.sam && perl $param{'master_folder'}/MCC_analyser.pl -f $filename.sam -pf $param{'public_folder_expt'} -bf $param{'bigwig_folder'} -genome $param{'genome'} -o $param{'oligo_file'} || exit 0\n";
+print TMP 'if wait; then echo "MCC_analyser.pl on'.$filename.' completed successfully">>log.txt;fi'."\n";
 }
 
 # To compress the files afterwards
@@ -213,7 +177,8 @@ if ($param{"postgzip"} =~ /^[Yy1]/)
 {
     if (-e "$filename.fastq"){print TMP "gzip $filename.fastq\n"}
     if ((-e "$filename.sam") and (-e "$filename.bam")){print TMP "rm $filename.sam\n"}
-    elsif (-e "$filename.sam"){print TMP "samtools view -S -b -o $filename.bam $filename.sam"}
+    elsif (-e "$filename.sam"){print TMP "samtools view -S -b -o $filename.bam $filename.sam\n"}
+    print TMP 'if wait; then echo "Gzip / samtobam on '.$filename.' completed successfully">>log.txt;fi'."\n";
 }
 
 # To analyse with macs2
@@ -222,10 +187,9 @@ if ($param{"macs2"} =~ /^[Yy1]/)
 if (-d "$path/macs2"){}
 else {mkdir "$path/macs2"};
 
-print TMP "
-module load macs2
-macs2 callpeak -t $filename.bam -f BAM -g1.87e9 --nomodel --extsize 100 -n  $filename --outdir $path/macs2
-";
+print TMP "module load macs2
+test -e $filename.bam && macs2 callpeak -t $filename.bam -f BAM -g1.87e9 --nomodel --extsize 100 -n  $filename --outdir $path/macs2 || exit 0\n";
+print TMP 'if wait; then echo "MACS2 on'.$filename.' completed successfully">>log.txt;fi'."\n";
 }
 
 # To analyse with macs2
@@ -234,15 +198,14 @@ if ($param{"macs2junction"} =~ /^[Yy1]/)
 if (-d "$path/macs2_junction"){}
 else {mkdir "$path/macs2_junction"};
 
-print TMP "
-module load macs2
-macs2 callpeak -t $filename\_junction.bam -f BAM -g1.87e9 --nomodel --extsize 100 -n  $filename\_junction --outdir $path/macs2
-";
+print TMP "module load macs2
+test -e $filename\_junction.bam && macs2 callpeak -t $filename\_junction.bam -f BAM -g1.87e9 --nomodel --extsize 100 -n  $filename\_junction --outdir $path/macs2 || exit 0\n";
+print TMP 'if wait; then echo "MACS2 junction on'.$filename.' completed successfully">>log.txt;fi'."\n";
 }
 
 if ($param{"double_norm"} =~ /^[Yy1]/)
 {
-    if ((-e "$filename\_de_norm_rep.wig") and (exists($param{"normalisation_dhs_bed"}))){print TMP "perl /t1-data/user/hugheslab/jdavies/00Scripts/MCC_normaliser.pl $filename\_de_norm_rep.wig $param{'normalisation_dhs_bed'}\n"}
+    if ((-e "$filename\_de_norm_rep.wig") and (exists($param{"normalisation_dhs_bed"}))){print TMP "perl /t1-data/project/fgenomics/jdavies/00Scripts/MCC_normaliser.pl $filename\_de_norm_rep.wig $param{'normalisation_dhs_bed'}\n"}
 }
 
 
@@ -255,9 +218,16 @@ if ($param{"qsub"} =~ /^[Yy1]/)
 #system ("qsub -cwd -o qsub.out -e qsub.err -N  $uniq_id < ./align_tmp.sh");
 
 # For Slurm
-system ("sbatch -o sb.out -e sb.err -J $uniq_id tmp.sh");
+system ("chmod 755 align_tmp.sh
+sbatch -o sb.out -e sb.err -J $uniq_id align_tmp.sh");
 
-system ("cat align_tmp.sh >> log.txt")
+system ('cat align_tmp.sh >> tmplog.txt
+        echo "
+#########################################################################################
+
+
+
+">>tmplog.txt')
 }    
 
     
@@ -270,7 +240,10 @@ if ($param{"track_hub"} =~ /^[Yy1]/)
 my $flag=0;
 until($flag==1)
     {
-    my $qstat = `qstat -u jdavies`;
+    #my $qstat = `qstat -u jdavies`;
+    
+    my $qstat = `squeue -u jdavies`;
+    #print "$uniq_id\t $qstat\n";
     if ($qstat !~ /.*$uniq_id*/){$flag=1; last}
     else {sleep $sleep_time;}
     }
@@ -296,6 +269,8 @@ if (-e $param{"colour_file"})
         else {print "colour file error $line\n"}
     }
 }
+
+#print Dumper (\%colours); exit;
 
 open UCSC, ">>UCSC.txt" or die "Couldn't open input file UCSC.txt";
 print UCSC "$param{'public_url'}$param{'public_folder_expt'}/$param{'name'}_hub.txt\n";
@@ -360,22 +335,24 @@ sub colour_find
     return $colours[$i]
 }
 
-#This ouputs a 2column hash to a file
-sub output_parameters
+sub load_config_file
 {
-    my ($hashref, $filehandleout_ref) = @_;
-    foreach my $value (sort keys %$hashref)
-    {
-    print $filehandleout_ref "# $value\t".$$hashref{$value}."\n";
-    }        
+my ($config_file, $param, $files) =  @_;
+
+open (FH, $config_file) or die "Couldn't open input file $config_file";
+
+while (my $line = <FH>)
+{
+chomp $line;
+    if ($line =~ /^#/){}
+    elsif ($line =~ /^\s*$/){}
+    elsif (($line =~ /^perl/) or ($line =~ /^exit/)){}
+    elsif (($line =~ /(.*)\s*=\s*(.*)/) or ($line =~ /(.*)\s*=\s*(.*)\s*#.*/))
+        {
+            if ($1 eq "file"){push @$files, $2}
+            else{$$param{$1}=$2}
+        }
+    else {print "line of input file not read: $line\n"}
 }
 
-sub print_parameters
-{
-    print "Script parameters\n";
-    my ($hashref) = @_;
-    foreach my $value (sort keys %$hashref)
-    {
-    print "$value\t".$$hashref{$value}."\n";
-    }        
 }
