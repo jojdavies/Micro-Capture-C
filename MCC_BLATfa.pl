@@ -23,12 +23,12 @@ Please don't use strange characters in the names - just numbers and letters it m
 
 =head1 EXAMPLE
 
-perl MCC_oligofile_generator.pl -f input_file -g path_to_bowtie_fasta_of_the_genome
+perl MCC_BLATFA.pl -f input_file -g path_to_bowtie_fasta_of_the_genome
 
 =head1 OPTIONS
 
- -f		  Input filename 
- -g	    Specify the genome file - this uses the bowtie reference file in fasta format for the genome you want to use
+ -f	Input filename 
+ -g	Specify the genome file - this uses the bowtie reference file in fasta format for the genome you want to use
  -l     Target lenght (Default 800)
 
 =head1 AUTHOR
@@ -48,11 +48,11 @@ my $man=0;
 # The GetOptions from the command line
 &GetOptions
 (
-	"f=s"=>\ my $full_filename,       # -f		Input filename 
-	"g=s"=>\ my $genome_file,			    # -o		File of the genome in FASTA format - the bowtie index file for example
-	"l=i"=>\ $target_length,		      # -l		Length of the desired target sequence for BLAT -default 800bp
-	'h|help'=>\$help,				          # -h or -help 	Help - prints the manual
-	'man'=>\$man,					            # -man  	prints the manual
+	"f=s"=>\ my $full_filename,	# -f		Input filename 
+	"g=s"=>\ my $genome_file,	# -o		File of the genome in FASTA format - the bowtie index file for example
+	"l=i"=>\ $target_length,	# -l		Length of the desired target sequence for BLAT -default 800bp
+	'h|help'=>\$help, 		# -h or -help 	Help - prints the manual
+	'man'=>\$man,			# -man  	prints the manual
 );
 
 pod2usage(1) if $help;
