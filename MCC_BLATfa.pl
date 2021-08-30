@@ -1,6 +1,5 @@
 #!/usr/bin/perl -w
 use strict;
-use Data::Dumper;
 use Getopt::Long;
 use Pod::Usage;
 
